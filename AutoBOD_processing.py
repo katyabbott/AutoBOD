@@ -1,28 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import xarray as xr
-import sys
-import os
-import glob
-import datetime
-from scipy import stats
-import gsw
-import matplotlib
-
-# Whenever the AutoBOD is reset (turned off and on again), 
-# it initializes from a preset date. For this cruise, that was Jan. 1, 2022.
-autoBOD_start_date = datetime.datetime(2022, 1, 1)
-
-# Location of log files from AutoBOD
-log_dir = '../respiration/logs/AutoBOD_logs/'
-
-# Location of metadata CSV
-log_sheet = pd.read_csv('../respiration/logs/AutoBOD_digital_log_sheet.csv')
 
 ### Functions
-### Functions to convert phase angle to oxygen concentration given bottle temperature 
 
+# Function to convert phase angle to oxygen concentration given bottle temperature 
 def calc_airsat_o2_conc(phase, IRBotT, Sal):
     
     from numpy import tan, pi, sqrt, exp, log
@@ -115,7 +97,7 @@ def datetime_from_date_hour(date_hour_df):
                     hh_mm_ss[2].astype('int'), unit='sec')
     return datetime_df
 
-def autobod_processing(log_sheet, error_codes=[1, 5], logging_on=False):
+def autobod_processing(log_dir, log_sheet, autoBOD_start_date, error_codes=[1, 5], logging_on=False):
     Sal = 38.4 #adjust per location
 
     log_sheet_unique = log_sheet[['Bottle_ID', 'Depth', 
@@ -135,7 +117,7 @@ def autobod_processing(log_sheet, error_codes=[1, 5], logging_on=False):
 
         run['autoBOD_datetime'] = datetime_from_date_hour(run[['Date', 'Hour']])
 
-        # Get relative number of seconds elapsed by subtracting the time logged by the autoBOD from its start time (1/1/22)
+        # Get relative number of seconds elapsed by subtracting the time logged by the autoBOD from its start time
         run['Elapsed_time_seconds'] = run['autoBOD_datetime'] - autoBOD_start_date
 
         # Remove all data where error is not in the list of error codes provided (default 1 or 5)
@@ -201,8 +183,6 @@ def autobod_processing(log_sheet, error_codes=[1, 5], logging_on=False):
     
     return master_ds
 
-master_ds = autobod_processing(log_sheet, logging_on=True)
-master_ds.to_netcdf('../respiration/autoBOD_respiration_rates.nc')
 
 
 
