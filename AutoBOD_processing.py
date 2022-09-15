@@ -5,29 +5,20 @@ import xarray as xr
 ### Functions
 
 # Function to convert phase angle to oxygen concentration given bottle temperature 
-def calc_airsat_o2_conc(phase, IRBotT, Sal):
+def calc_airsat(phase, temp):
     
     from numpy import tan, pi, sqrt, exp, log
     
     #Defining constants 
     cal0 = 60.21 #B6
     cal100 = 27.42 #B7
-    airpres = 981 #B8
+    #airpres = 981 #B8
     T0 = 20 #E6
     T100 = 20 #E7
     dF_k = -0.0847 #B12
     f1 = 0.833 #B11
     dksv_k = 0.000416 #B13
     m = 34 #B14
-    
-    #Salinity-related corrections
-    # http://www.argodatamgt.org/content/download/26531/181223/file/Aanderaa_TD218_OperatingManual_OxygenOptode_3830_3835_3930_3975_4130_4175_RevApr2007.pdf
-    Ts_eq = lambda t: np.log((298.15 - t)/(273.15 + t)) #scaled temperature, depends on temperature of incubation
-    B0 = -6.24097e-3
-    C0 = -3.1168e-7
-    B1 = -6.93498e-3
-    B2= -6.90358e-3
-    B3 = -4.29155e-3
     
     tan_psi0_t100 = tan(((cal0+dF_k*(T100-T0)))*pi/180) #D11
     tan_psi100_t100 = tan(cal100*pi/180) #D13
@@ -38,29 +29,44 @@ def calc_airsat_o2_conc(phase, IRBotT, Sal):
 
     ksv_t100 = (-B+sqrt(B**2-4*A*C))/(2*A) #H11
     
-    air_sat = (-((tan(phase*pi/180))/(tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))*
-                        (ksv_t100+(dksv_k*(IRBotT-T100)))+(tan(phase*pi/180))/
-                        (tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))*1/m*(ksv_t100+(dksv_k
-                        *(IRBotT-T100)))-f1*1/m*(ksv_t100+(dksv_k*(IRBotT-T100)))-(ksv_t100
-                        +(dksv_k*(IRBotT-T100)))+f1*(ksv_t100+(dksv_k*(IRBotT-T100))))+(
-                        sqrt(((((tan(phase*pi/180))/(tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))*(
-                        ksv_t100+(dksv_k*(IRBotT-T100)))+(tan(phase*pi/180))/(tan((cal0+(dF_k*(
-                        IRBotT-T0)))*pi/180))*1/m*(ksv_t100+(dksv_k*(IRBotT-T100)))-
-                        f1*1/m*(ksv_t100+(dksv_k*(IRBotT-T100)))-(ksv_t100+(dksv_k*
-                        (IRBotT-T100)))+f1*(ksv_t100+(dksv_k*(IRBotT-T100))))**2))-
-                        4*((tan(phase*pi/180))/(tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))*1/m*
-                        ((ksv_t100+(dksv_k*(IRBotT-T100)))**2))*((tan(phase*pi/180))/(
-                        tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))-1))))/(2*((tan(phase*pi/180))/
-                        (tan((cal0+(dF_k*(IRBotT-T0)))*pi/180))*1/m*((ksv_t100+(dksv_k*(IRBotT-T100)))**2)))
+    air_sat = (-((tan(phase*pi/180))/(tan((cal0+(dF_k*(temp-T0)))*pi/180))*
+                        (ksv_t100+(dksv_k*(temp-T100)))+(tan(phase*pi/180))/
+                        (tan((cal0+(dF_k*(temp-T0)))*pi/180))*1/m*(ksv_t100+(dksv_k
+                        *(temp-T100)))-f1*1/m*(ksv_t100+(dksv_k*(temp-T100)))-(ksv_t100
+                        +(dksv_k*(temp-T100)))+f1*(ksv_t100+(dksv_k*(temp-T100))))+(
+                        sqrt(((((tan(phase*pi/180))/(tan((cal0+(dF_k*(temp-T0)))*pi/180))*(
+                        ksv_t100+(dksv_k*(temp-T100)))+(tan(phase*pi/180))/(tan((cal0+(dF_k*(
+                        temp-T0)))*pi/180))*1/m*(ksv_t100+(dksv_k*(temp-T100)))-
+                        f1*1/m*(ksv_t100+(dksv_k*(temp-T100)))-(ksv_t100+(dksv_k*
+                        (temp-T100)))+f1*(ksv_t100+(dksv_k*(temp-T100))))**2))-
+                        4*((tan(phase*pi/180))/(tan((cal0+(dF_k*(temp-T0)))*pi/180))*1/m*
+                        ((ksv_t100+(dksv_k*(temp-T100)))**2))*((tan(phase*pi/180))/(
+                        tan((cal0+(dF_k*(temp-T0)))*pi/180))-1))))/(2*((tan(phase*pi/180))/
+                        (tan((cal0+(dF_k*(temp-T0)))*pi/180))*1/m*((ksv_t100+(dksv_k*(temp-T100)))**2)))
+    
+    return air_sat
+
+def calc_o2_conc(air_sat, temp, Sal):
+    from numpy import exp, log
+    #Salinity-related corrections
+    # http://www.argodatamgt.org/content/download/26531/181223/file/Aanderaa_TD218_OperatingManual_OxygenOptode_3830_3835_3930_3975_4130_4175_RevApr2007.pdf
+    Ts_eq = lambda t: np.log((298.15 - t)/(273.15 + t)) #scaled temperature, depends on temperature of incubation
+    B0 = -6.24097e-3
+    C0 = -3.1168e-7
+    B1 = -6.93498e-3
+    B2 = -6.90358e-3
+    B3 = -4.29155e-3
+    airpres = 981 #B8
 
 
-    o2_conc = (((airpres-exp(52.57-6690.9/(273.15+IRBotT)-4.681*log(273.15+IRBotT)))/1013)*
-           air_sat/100.*0.2095*(48.998-1.335*IRBotT+0.02755*IRBotT**2-
-                                 0.000322*IRBotT**3+0.000001598*IRBotT**4)*32/22.414)
+    ## Given the % air sat and temperature of the bottle, we can calculate concentration 
+    o2_conc = (((airpres-exp(52.57-6690.9/(273.15+temp)-4.681*log(273.15+temp)))/1013)*
+           air_sat/100.*0.2095*(48.998-1.335*temp+0.02755*temp**2-
+                                 0.000322*temp**3+0.000001598*temp**4)*32/22.414)
     
     #Salinity correction
-    Ts = Ts_eq(IRBotT)
-    o2_conc*=np.exp(Sal*(B0 + B1*Ts+ B2*Ts**2 + B3*Ts**3) + C0*Sal**2)
+    Ts = Ts_eq(temp)
+    o2_conc*=exp(Sal*(B0 + B1*Ts+ B2*Ts**2 + B3*Ts**3) + C0*Sal**2)
     
     o2_conc *= 31.25 #umol/L
     
@@ -70,6 +76,7 @@ def bottle_add_data(ds, log_sheet):
     ds['Depth'] = (('N_bottles',), log_sheet['Depth'])
     notes = log_sheet['Notes'].astype('str').replace({'nan': ' '})
     ds['Notes'] = (('N_bottles',), notes)
+    ds['Sample_collection_time'] = (('N_bottles',), log_sheet['Sample_collection_time'])
     ds['Cast_Niskin'] = (('N_bottles'), log_sheet['Cast_Niskin'])
     UTC_dates = np.repeat(pd.to_datetime(log_sheet['AutoBOD_start_time_UTC']).values, 
           ds.dims['N_obs']).reshape((ds.dims['N_bottles'], 
@@ -101,7 +108,7 @@ def autobod_processing(log_dir, log_sheet, autoBOD_start_date, error_codes=[1, 5
     Sal = 38.4 #adjust per location
 
     log_sheet_unique = log_sheet[['Bottle_ID', 'Depth', 
-            'AutoBOD_start_time_UTC', 'Notes', 'Cast_Niskin']].drop_duplicates(subset=['Bottle_ID'])
+            'AutoBOD_start_time_UTC', 'Notes', 'Cast_Niskin', 'Sample_collection_time']].drop_duplicates(subset=['Bottle_ID'])
     
     for i, logfile in enumerate(sorted(list(set(log_sheet['Logfile'].values)))):
         if logging_on:
@@ -123,9 +130,6 @@ def autobod_processing(log_dir, log_sheet, autoBOD_start_date, error_codes=[1, 5
         # Remove all data where error is not in the list of error codes provided (default 1 or 5)
         run = run.where(run.Error.isin(error_codes))
         run = run.dropna()
-
-        #Calculate oxygen concentration
-        run['O2_conc_umol_L'] = calc_airsat_o2_conc(run['Phase'], run['IRBotT'], Sal)
 
         # Get a counter of the number of measurements made (i.e., because the autoBOD records 
         # multiple data points when it finds a spot, and we might want to average these measurements). For example, if it takes 10 measurements
