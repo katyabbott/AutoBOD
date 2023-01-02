@@ -74,9 +74,11 @@ def calc_o2_conc(air_sat, temp, Sal):
 
 def bottle_add_data(ds, log_sheet):
     ds['Depth'] = (('N_bottles',), log_sheet['Depth'])
-    notes = log_sheet['Notes'].astype('str').replace({'nan': ' '})
-    ds['Notes'] = (('N_bottles',), notes)
+    notes = log_sheet['Feature'].astype('str').replace({'nan': ' '})
+    ds['Feature'] = (('N_bottles',), notes)
     ds['Sample_collection_time'] = (('N_bottles',), log_sheet['Sample_collection_time'])
+    ds['SA'] = (('N_bottles',), log_sheet['SA'])
+    ds['CT'] = (('N_bottles',), log_sheet['CT'])
     ds['Cast_Niskin'] = (('N_bottles'), log_sheet['Cast_Niskin'])
     UTC_dates = np.repeat(pd.to_datetime(log_sheet['AutoBOD_start_time_UTC']).values, 
           ds.dims['N_obs']).reshape((ds.dims['N_bottles'], 
@@ -107,8 +109,8 @@ def datetime_from_date_hour(date_hour_df):
 def autobod_processing(log_dir, log_sheet, autoBOD_start_date, error_codes=[1, 5], logging_on=False):
     Sal = 38.4 #adjust per location
 
-    log_sheet_unique = log_sheet[['Bottle_ID', 'Depth', 
-            'AutoBOD_start_time_UTC', 'Notes', 'Cast_Niskin', 'Sample_collection_time']].drop_duplicates(subset=['Bottle_ID'])
+    log_sheet_unique = log_sheet[['Bottle_ID', 'Depth', 'AutoBOD_start_time_UTC', 'Feature', 
+                    'Cast_Niskin', 'Sample_collection_time','CT', 'SA']].drop_duplicates(subset=['Bottle_ID'])
     
     for i, logfile in enumerate(sorted(list(set(log_sheet['Logfile'].values)))):
         if logging_on:
