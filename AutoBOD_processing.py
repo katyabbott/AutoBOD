@@ -108,6 +108,7 @@ def datetime_from_date_hour(date_hour_df):
 
 def autobod_processing(log_dir, log_sheet, autoBOD_start_date, error_codes=[1, 5], logging_on=False):
     Sal = 38.4 #adjust per location
+    #amplitude_threshold - below this value, we replace all data with NaN (assuming amplitude was too low to get a good reading)
 
     log_sheet_unique = log_sheet[['Bottle_ID', 'Depth', 'AutoBOD_start_time_UTC', 'Feature', 
                     'Cast_Niskin', 'Sample_collection_time','CT', 'SA']].drop_duplicates(subset=['Bottle_ID'])
